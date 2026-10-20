@@ -696,7 +696,7 @@ metrics:
       {{output}}
 
       The complete agent execution trace is provided as context, including:
-      - All tool calls made (query_performance_metrics, search_campaign_content, code_execution, web_search, campaign-report skill)
+      - All tool calls made (query_performance_metrics, search_campaign_content, web_search)
       - Tool outputs and retrieved data
       - Intermediate reasoning steps
 
@@ -741,11 +741,11 @@ metrics:
       campaigns. Execution efficiency measures how optimally the agent uses its available
       tools to accomplish the user''s goal.
 
-      The agent has access to the following tools and skills:
+      The agent has access to the following tools:
       1. query_performance_metrics - For quantitative analysis (revenue, ROI, conversions, etc.)
       2. search_campaign_content - For qualitative insights (descriptions, feedback, A/B tests)
-      3. campaign-report skill (via code_execution) - For creating comprehensive HTML reports
-      4. web_search - For external/industry context
+      3. web_search - For external/industry context
+      Report requests are handled by the campaign-report skill, which is not a tool call; it uses the tools above to gather data.
 
       Analyze the complete agent execution trace provided as context, including:
       - Execution duration: {{duration}} milliseconds
