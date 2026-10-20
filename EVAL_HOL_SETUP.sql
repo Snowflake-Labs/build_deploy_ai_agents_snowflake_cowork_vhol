@@ -117,22 +117,21 @@ GRANT CREATE AGENT ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
 USE ROLE COWORK_AI_HOL_ROLE;
 
 -- Create API integration for GitHub (public repo, no secrets needed)
-CREATE API INTEGRATION IF NOT EXISTS GIT_API_INTEGRATION_AGENT_EVAL_QUICKSTART
+CREATE API INTEGRATION IF NOT EXISTS GIT_API_INTEGRATION_COWORK_AI_HOL
     API_PROVIDER = git_https_api
-    API_ALLOWED_PREFIXES = ('https://github.com/Snowflake-Labs/')
+    API_ALLOWED_PREFIXES = ('https://github.com/sfc-gh-ebotwick/')
     ENABLED = TRUE;
 
--- Clone the GitHub repository
+-- Clone the GitHub repository (lab data lives in the data/ folder at the repo root)
 CREATE OR REPLACE GIT REPOSITORY CORTEX_AGENT_QUICKSTART_REPO
-    API_INTEGRATION = GIT_API_INTEGRATION_AGENT_EVAL_QUICKSTART
-    ORIGIN = 'https://github.com/Snowflake-Labs/sfguide-getting-started-with-cortex-agent-evaluations.git';
+    API_INTEGRATION = GIT_API_INTEGRATION_COWORK_AI_HOL
+    ORIGIN = 'https://github.com/sfc-gh-ebotwick/build_deploy_ai_agents_snowflake_cowork_vhol.git';
 
 -- Fetch latest from GitHub
 ALTER GIT REPOSITORY CORTEX_AGENT_QUICKSTART_REPO FETCH;
 
 -- Verify repository
 SHOW GIT BRANCHES IN CORTEX_AGENT_QUICKSTART_REPO;
-LS @CORTEX_AGENT_QUICKSTART_REPO/branches/main/data;
 LS @CORTEX_AGENT_QUICKSTART_REPO/branches/main/data;
 
 
