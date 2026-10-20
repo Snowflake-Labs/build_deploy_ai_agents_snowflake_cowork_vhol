@@ -10,7 +10,7 @@
 --
 -- Prerequisites:
 -- - ACCOUNTADMIN role (or role with CREATE DATABASE privileges)
--- - Access to TECHUP_EVAL_WH warehouse (or modify warehouse name below)
+-- - Access to COWORK_AI_HOL_WH warehouse (or modify warehouse name below)
 -- - SNOWFLAKE.CORTEX_USER database role granted
 --
 -- Estimated runtime: 5-10 minutes
@@ -24,10 +24,10 @@
 USE ROLE ACCOUNTADMIN;
 
 -- Create database using variable
-CREATE DATABASE IF NOT EXISTS TECHUP_EVAL_LAB_DB;
-CREATE OR REPLACE SCHEMA TECHUP_EVAL_LAB_DB.AGENTS;
-USE SCHEMA TECHUP_EVAL_LAB_DB.AGENTS;
-CREATE WAREHOUSE IF NOT EXISTS TECHUP_EVAL_WH WAREHOUSE_SIZE='SMALL';
+CREATE DATABASE IF NOT EXISTS COWORK_AI_HOL_DB;
+CREATE OR REPLACE SCHEMA COWORK_AI_HOL_DB.AGENTS;
+USE SCHEMA COWORK_AI_HOL_DB.AGENTS;
+CREATE WAREHOUSE IF NOT EXISTS COWORK_AI_HOL_WH WAREHOUSE_SIZE='SMALL';
 
 
 -- ====================================================================
@@ -35,41 +35,41 @@ CREATE WAREHOUSE IF NOT EXISTS TECHUP_EVAL_WH WAREHOUSE_SIZE='SMALL';
 -- ====================================================================
 
 -- Create new role
-CREATE OR REPLACE ROLE AGENT_EVAL_ROLE;
+CREATE OR REPLACE ROLE COWORK_AI_HOL_ROLE;
 
 -- Set current user (or change if running on behalf of a coworker)
-SET AGENT_EVAL_USER = CURRENT_USER();
+SET COWORK_AI_HOL_USER = CURRENT_USER();
 
 -- Grant role to user
-GRANT ROLE AGENT_EVAL_ROLE to USER IDENTIFIER($AGENT_EVAL_USER);
+GRANT ROLE COWORK_AI_HOL_ROLE to USER IDENTIFIER($COWORK_AI_HOL_USER);
 
 -- Usage on DB and Schema
-GRANT USAGE ON DATABASE TECHUP_EVAL_LAB_DB TO ROLE AGENT_EVAL_ROLE;
-GRANT USAGE ON SCHEMA TECHUP_EVAL_LAB_DB.AGENTS TO ROLE AGENT_EVAL_ROLE;
-GRANT CREATE TABLE ON SCHEMA TECHUP_EVAL_LAB_DB.AGENTS TO ROLE AGENT_EVAL_ROLE;
-GRANT CREATE STAGE ON SCHEMA TECHUP_EVAL_LAB_DB.AGENTS TO ROLE AGENT_EVAL_ROLE;
+GRANT USAGE ON DATABASE COWORK_AI_HOL_DB TO ROLE COWORK_AI_HOL_ROLE;
+GRANT USAGE ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
+GRANT CREATE TABLE ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
+GRANT CREATE STAGE ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
 
 
 -- Specialized db/application roles
-GRANT DATABASE ROLE SNOWFLAKE.CORTEX_USER TO ROLE AGENT_EVAL_ROLE;
-GRANT APPLICATION ROLE SNOWFLAKE.AI_OBSERVABILITY_EVENTS_LOOKUP TO ROLE AGENT_EVAL_ROLE;
+GRANT DATABASE ROLE SNOWFLAKE.CORTEX_USER TO ROLE COWORK_AI_HOL_ROLE;
+GRANT APPLICATION ROLE SNOWFLAKE.AI_OBSERVABILITY_EVENTS_LOOKUP TO ROLE COWORK_AI_HOL_ROLE;
 
 -- Required: enables access to CoCo 
-GRANT DATABASE ROLE SNOWFLAKE.COPILOT_USER TO ROLE AGENT_EVAL_ROLE;
+GRANT DATABASE ROLE SNOWFLAKE.COPILOT_USER TO ROLE COWORK_AI_HOL_ROLE;
 
 -- Create Datasets
-GRANT CREATE FILE FORMAT ON SCHEMA TECHUP_EVAL_LAB_DB.AGENTS TO ROLE AGENT_EVAL_ROLE;
-GRANT CREATE DATASET ON SCHEMA TECHUP_EVAL_LAB_DB.AGENTS TO ROLE AGENT_EVAL_ROLE;
+GRANT CREATE FILE FORMAT ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
+GRANT CREATE DATASET ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
 
 -- Create and execute tasks
-GRANT CREATE TASK ON SCHEMA TECHUP_EVAL_LAB_DB.AGENTS TO ROLE AGENT_EVAL_ROLE;
-GRANT EXECUTE TASK ON ACCOUNT TO ROLE AGENT_EVAL_ROLE;
+GRANT CREATE TASK ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
+GRANT EXECUTE TASK ON ACCOUNT TO ROLE COWORK_AI_HOL_ROLE;
 
 -- Run evaluations
-GRANT MONITOR ON FUTURE AGENTS IN SCHEMA TECHUP_EVAL_LAB_DB.AGENTS TO ROLE AGENT_EVAL_ROLE;
+GRANT MONITOR ON FUTURE AGENTS IN SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
 
--- Warehouse usage on TECHUP_EVAL_WH and on User's defualt WH (which is used for eval tasks)
-GRANT USAGE ON WAREHOUSE TECHUP_EVAL_WH TO ROLE AGENT_EVAL_ROLE;
+-- Warehouse usage on COWORK_AI_HOL_WH and on User's defualt WH (which is used for eval tasks)
+GRANT USAGE ON WAREHOUSE COWORK_AI_HOL_WH TO ROLE COWORK_AI_HOL_ROLE;
 
 EXECUTE IMMEDIATE $$
 DECLARE
@@ -80,27 +80,27 @@ BEGIN
     FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) 
     WHERE "property" = 'DEFAULT_WAREHOUSE';
     
-    EXECUTE IMMEDIATE 'GRANT USAGE ON WAREHOUSE ' || wh_name || ' TO ROLE AGENT_EVAL_ROLE';
+    EXECUTE IMMEDIATE 'GRANT USAGE ON WAREHOUSE ' || wh_name || ' TO ROLE COWORK_AI_HOL_ROLE';
     RETURN 'Granted USAGE on ' || wh_name;
 END;
 $$;
 
 -- Git setup
-GRANT CREATE API INTEGRATION ON ACCOUNT TO ROLE AGENT_EVAL_ROLE;
-GRANT CREATE GIT REPOSITORY ON SCHEMA TECHUP_EVAL_LAB_DB.AGENTS TO ROLE AGENT_EVAL_ROLE;
+GRANT CREATE API INTEGRATION ON ACCOUNT TO ROLE COWORK_AI_HOL_ROLE;
+GRANT CREATE GIT REPOSITORY ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
 
 -- Service and Agent creation
-GRANT CREATE SEMANTIC VIEW ON SCHEMA TECHUP_EVAL_LAB_DB.AGENTS TO ROLE AGENT_EVAL_ROLE;
-GRANT CREATE CORTEX SEARCH SERVICE ON SCHEMA TECHUP_EVAL_LAB_DB.AGENTS TO ROLE AGENT_EVAL_ROLE;
-GRANT CREATE PROCEDURE ON SCHEMA TECHUP_EVAL_LAB_DB.AGENTS TO ROLE AGENT_EVAL_ROLE;
-GRANT CREATE AGENT ON SCHEMA TECHUP_EVAL_LAB_DB.AGENTS TO ROLE AGENT_EVAL_ROLE;
+GRANT CREATE SEMANTIC VIEW ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
+GRANT CREATE CORTEX SEARCH SERVICE ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
+GRANT CREATE PROCEDURE ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
+GRANT CREATE AGENT ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
 
 -- ============================================================================
 -- SECTION 3: CREATE GIT INTEGRATION (for loading CSV files from repo)
 -- ============================================================================
 
 -- Use new role
-USE ROLE AGENT_EVAL_ROLE;
+USE ROLE COWORK_AI_HOL_ROLE;
 
 -- Create API integration for GitHub (public repo, no secrets needed)
 CREATE API INTEGRATION IF NOT EXISTS GIT_API_INTEGRATION_AGENT_EVAL_QUICKSTART
@@ -302,7 +302,7 @@ SHOW SEMANTIC VIEWS LIKE 'MARKETING_PERFORMANCE_ANALYST';
 CREATE OR REPLACE CORTEX SEARCH SERVICE MARKETING_CAMPAIGNS_SEARCH
   ON combined_text
   ATTRIBUTES campaign_name, campaign_type, channel, content_type
-  WAREHOUSE = TECHUP_EVAL_WH
+  WAREHOUSE = COWORK_AI_HOL_WH
   TARGET_LAG = '1 hour'
   AS (
     SELECT 
@@ -471,7 +471,7 @@ BEGIN
 SELECT CURRENT_ORGANIZATION_NAME(), CURRENT_ACCOUNT_NAME() 
   INTO ORG_NAME, ACCOUNT_NAME;
   
-  upload_result := 'Report '|| file_name || ' generated and uploaded to stage. View here - https://app.snowflake.com/'|| ORG_NAME ||'/' || ACCOUNT_NAME ||'/#/data/databases/TECHUP_EVAL_LAB_DB/schemas/AGENTS/stage/CAMPAIGN_REPORTS';
+  upload_result := 'Report '|| file_name || ' generated and uploaded to stage. View here - https://app.snowflake.com/'|| ORG_NAME ||'/' || ACCOUNT_NAME ||'/#/data/databases/COWORK_AI_HOL_DB/schemas/AGENTS/stage/CAMPAIGN_REPORTS';
 
   
   RETURN upload_result;
@@ -573,24 +573,24 @@ FROM SPECIFICATION $$
             "execution_environment": {
                 "query_timeout": 299,
                 "type": "warehouse",
-                "warehouse": "TECHUP_EVAL_WH"
+                "warehouse": "COWORK_AI_HOL_WH"
             },
-            "semantic_view": "TECHUP_EVAL_LAB_DB.AGENTS.MARKETING_PERFORMANCE_ANALYST"
+            "semantic_view": "COWORK_AI_HOL_DB.AGENTS.MARKETING_PERFORMANCE_ANALYST"
         },
         "search_campaign_content": {
             "execution_environment": {
                 "query_timeout": 299,
                 "type": "warehouse",
-                "warehouse": "TECHUP_EVAL_WH"
+                "warehouse": "COWORK_AI_HOL_WH"
             },
-            "search_service": "TECHUP_EVAL_LAB_DB.AGENTS.MARKETING_CAMPAIGNS_SEARCH"
+            "search_service": "COWORK_AI_HOL_DB.AGENTS.MARKETING_CAMPAIGNS_SEARCH"
         },
         "generate_campaign_report": {
             "type": "procedure",
-            "identifier": "TECHUP_EVAL_LAB_DB.AGENTS.GENERATE_CAMPAIGN_REPORT_HTML",
+            "identifier": "COWORK_AI_HOL_DB.AGENTS.GENERATE_CAMPAIGN_REPORT_HTML",
             "execution_environment": {
                 "type": "warehouse",
-                "warehouse": "TECHUP_EVAL_WH",
+                "warehouse": "COWORK_AI_HOL_WH",
                 "query_timeout": 300
             }
         }
@@ -635,8 +635,8 @@ Optionally follow the below instructions to use the Agents UI to evaluate the pe
 - Navigate to your newly created agent and click into Evaluations Tab
     - Name your new evaluation run and optionally give a description [click next]
     - Select Create New Dataset
-        - Select TECHUP_EVAL_LAB_DB.AGENTS.EVALS_TABLE as your input table
-        - Select TECHUP_EVAL_LAB_DB.AGENTS.QUICKSTART_EVALSET as your new dataset destination [click next]
+        - Select COWORK_AI_HOL_DB.AGENTS.EVALS_TABLE as your input table
+        - Select COWORK_AI_HOL_DB.AGENTS.QUICKSTART_EVALSET as your new dataset destination [click next]
     - Select INPUT_QUERY as your Query Text column
         - Check boxes for all metrics available
         - Tool Selection Accuracy, Tool Execution Accuracy, and Answer Correctness should reference the EXPECTED_TOOLS column
@@ -656,8 +656,8 @@ $$ as setup_status;
 -- First we will create a dataset to use for evaluating our agent
 CALL SYSTEM$CREATE_EVALUATION_DATASET(
     'Cortex Agent',
-    'TECHUP_EVAL_LAB_DB.AGENTS.EVALS_TABLE',
-    'TECHUP_EVAL_LAB_DB.AGENTS.MARKETING_CAMPAIGN_EVALSET',
+    'COWORK_AI_HOL_DB.AGENTS.EVALS_TABLE',
+    'COWORK_AI_HOL_DB.AGENTS.MARKETING_CAMPAIGN_EVALSET',
     OBJECT_CONSTRUCT('query_text', 'INPUT_QUERY', 'expected_tools', 'GROUND_TRUTH_DATA'));
 
 
@@ -665,12 +665,12 @@ CALL SYSTEM$CREATE_EVALUATION_DATASET(
 SHOW DATASETS;
 
 -- Next we will create a stage to store our evaluation config file
-CREATE OR REPLACE STAGE TECHUP_EVAL_LAB_DB.AGENTS.EVAL_CONFIG_STAGE
+CREATE OR REPLACE STAGE COWORK_AI_HOL_DB.AGENTS.EVAL_CONFIG_STAGE
   DIRECTORY = (ENABLE = TRUE)
   COMMENT = 'Internal stage to host evaluation config files';
 
 -- Copy file from git repo to stage
--- COPY FILES INTO @TECHUP_EVAL_LAB_DB.AGENTS.EVAL_CONFIG_STAGE
+-- COPY FILES INTO @COWORK_AI_HOL_DB.AGENTS.EVAL_CONFIG_STAGE
 -- FROM @CORTEX_AGENT_QUICKSTART_REPO/branches/main/
 -- FILES = ('marketing_campaign_eval_config.yaml');
 
@@ -687,7 +687,7 @@ INSERT INTO temp_eval_config VALUES (
 # Evaluation task configuration
 evaluation:
   agent_params:
-    agent_name: TECHUP_EVAL_LAB_DB.AGENTS.MARKETING_AGENT
+    agent_name: COWORK_AI_HOL_DB.AGENTS.MARKETING_AGENT
     agent_type: CORTEX AGENT
     agent_version: VERSION$1
   run_params:
@@ -695,7 +695,7 @@ evaluation:
     description: Evaluating Answer Correctness, Logical Consistency, Tool Selection Accuracy, Tool Execution Accuracy, Groundedness and Execution Efficiency metrics for the marketing campaign analytics agent
   source_metadata:
     type: dataset
-    dataset_name: TECHUP_EVAL_LAB_DB.AGENTS.MARKETING_CAMPAIGN_EVALSET
+    dataset_name: COWORK_AI_HOL_DB.AGENTS.MARKETING_CAMPAIGN_EVALSET
 
 metrics:
   # Built-in metrics
@@ -837,16 +837,16 @@ DROP TABLE temp_eval_config;
 DESCRIBE STAGE eval_config_stage;
 
 -- Confirm yaml was uploaded
-LS @TECHUP_EVAL_LAB_DB.AGENTS.EVAL_CONFIG_STAGE;
+LS @COWORK_AI_HOL_DB.AGENTS.EVAL_CONFIG_STAGE;
 
 -- Check contents of yaml
-SELECT $1 FROM @TECHUP_EVAL_LAB_DB.AGENTS.EVAL_CONFIG_STAGE/marketing_campaign_eval_config.yaml;
+SELECT $1 FROM @COWORK_AI_HOL_DB.AGENTS.EVAL_CONFIG_STAGE/marketing_campaign_eval_config.yaml;
 
 -- Kickoff evaluation run using yaml config
 CALL EXECUTE_AI_EVALUATION(
   'START',
   OBJECT_CONSTRUCT('run_name', 'BASELINE_MARKETING_AGENT_EVAL_RUN'),
-  '@TECHUP_EVAL_LAB_DB.AGENTS.EVAL_CONFIG_STAGE/marketing_campaign_eval_config.yaml'
+  '@COWORK_AI_HOL_DB.AGENTS.EVAL_CONFIG_STAGE/marketing_campaign_eval_config.yaml'
 );
 
 
@@ -854,14 +854,14 @@ CALL EXECUTE_AI_EVALUATION(
 CALL EXECUTE_AI_EVALUATION( 
   'STATUS',
   OBJECT_CONSTRUCT('run_name', 'BASELINE_MARKETING_AGENT_EVAL_RUN'),
-  '@TECHUP_EVAL_LAB_DB.AGENTS.EVAL_CONFIG_STAGE/marketing_campaign_eval_config.yaml'
+  '@COWORK_AI_HOL_DB.AGENTS.EVAL_CONFIG_STAGE/marketing_campaign_eval_config.yaml'
 );
 
 -- Iteratively check status of evaluation run and wait to proceed until eval is completed
 
 DECLARE
     run_name VARCHAR DEFAULT 'BASELINE_MARKETING_AGENT_EVAL_RUN';
-    config_path VARCHAR DEFAULT '@TECHUP_EVAL_LAB_DB.AGENTS.EVAL_CONFIG_STAGE/marketing_campaign_eval_config.yaml';
+    config_path VARCHAR DEFAULT '@COWORK_AI_HOL_DB.AGENTS.EVAL_CONFIG_STAGE/marketing_campaign_eval_config.yaml';
     max_wait_seconds NUMBER DEFAULT 600;
     poll_interval_seconds NUMBER DEFAULT 20;
     status_val VARCHAR;
@@ -895,5 +895,5 @@ SELECT 'SETUP COMPLETE! Access your evaluation results at link below';
 SELECT 'https://app.snowflake.com/' || 
        LOWER(CURRENT_ORGANIZATION_NAME()) || '/' || 
        LOWER(CURRENT_ACCOUNT_NAME()) || 
-       '/#/agents/database/TECHUP_EVAL_LAB_DB/schema/AGENTS/agent/MARKETING_AGENT/details?tab=evaluations&preset=PRESET_LAST_DAY&type=relative' 
+       '/#/agents/database/COWORK_AI_HOL_DB/schema/AGENTS/agent/MARKETING_AGENT/details?tab=evaluations&preset=PRESET_LAST_DAY&type=relative' 
        AS agent_eval_url;

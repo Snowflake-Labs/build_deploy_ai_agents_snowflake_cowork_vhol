@@ -1,20 +1,13 @@
-# ❄️ Snowflake TechUp 2026 ❄️
 # Eval Based Agentic Optimization HOL  
-Hands on Lab materials for eval driven agent optimization session for Techup 2026
-
-🙋‍♀️ If at any point in the lab you need help please post a message in https://snowflake.enterprise.slack.com/archives/C0BQDQZUZMX and tag any of @elliott.botwick, @sharon.li, @haley.massa, @andrew.samant, and justin.marciszewski 🙋‍♀️
-
+Hands on Lab materials for building, evaluating and deploying AI Agents on Snowflake CoWork
 
 # Instructions
 
-## 1. Account Access
-Please plan to use your SE demo Snowflake account for this lab! If you have any issues with environment access please ping in the above linked slack channel.  
-
-## 2. Setup 
+## 1. Setup 
 
 Run the [EVAL_HOL_SETUP.sql](EVAL_HOL_SETUP.sql) file to provision a new database with data, a semantic view, a cortex search service and a custom tool before wrapping these services into a baseline agent and running your first evaluation.
 
-## 3. Eval Investigation
+## 2. Eval Investigation
 
 In Snowsight, navigate to your newly created Agent and click on the Evaluations tab. Check out your global metric scores and get a sense of where your baseline agent is. Look into individual records to understand how the agent performed across a variety of metrics for given queries. 
 
@@ -35,7 +28,7 @@ Clicking into a single record shows us the trace for that request and the metric
 
 ## 4. Agent Optimization
 
-Time to improve your agent using Cortex Code (CoCo)! You have two options depending on your environment. Both options use the same prompts from [coco_prompts.txt](./coco_prompts.txt) to analyze the evaluation results and drive improvements.
+Time to improve your agent using CoCo! You have two options depending on your environment. Both options use the same prompts from [coco_prompts.txt](./coco_prompts.txt) to analyze the evaluation results and drive improvements.
 
 ---
 
@@ -73,15 +66,4 @@ A few ideas of things to try
 - An updated Semantic Model
 - A new orchestration model
 - Enriched tool descriptions
-
-The world is your oyster - get creative and see if you can impress the judges - LLM and Human!
-
-To submit, post a short summary of what you did to improve your agent and how high you were able to get your scores. 
-
-Post your summaries in appropriate threads (use the threads!!!) on https://snowflake.enterprise.slack.com/archives/C0BQDQZUZMX
-
-# TODO
-1. Update the DataOps link to Major TechUp event link
-2. Update slack channel link
-3. Ask for more support members
 

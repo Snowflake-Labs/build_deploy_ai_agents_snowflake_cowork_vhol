@@ -1,6 +1,19 @@
-# Option 2: CoCo CLI Setup
+# Option 2: CoCo Desktop & CLI Setup
 
-As Snowflake SE's you should be comfortable setting up new Snowflake Environments in your CoCo CLI. For this lab the easiest way to use CoCo will be to set up a new connection in CoCo desktop. Click on the Snowflake connection icon in the top left corner. Click add connection. 
+For this lab the easiest way to use CoCo will be in CoCo Snowsight. See instructions for setup at [coco_snowsight_setup.md](./coco_snowsight_setup.md). 
+
+
+You also have the option to use either CoCo Desktop or CLI for this lab. See instructions below to set up a new connection in either CoCo desktop or CoCo CLI.
+
+
+## CoCo Desktop 
+
+Install the appropriate version of CoCo Desktop for your local machine here - https://www.snowflake.com/en/product/snowflake-coco/downloads/
+
+Once installed - click on the Snowflake connection icon in the top left corner. 
+
+
+Click add connection. 
 
 
 Fill out as below. **Ensure you set the role to AGENT_EVAL_ROLE** for this connection to not encounter permissions errors in the lab.
@@ -17,18 +30,9 @@ NOTE - If you have a lot of custom configurations in your CoCo instance (custom 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## CoCo CLI
 
-### Clean CoCo env setup (as necessary)
-
-If you would like a fresh environment to run your CoCo CLI in - we recommend using Github Codespaces to get a clean cloud-hosted VSCode environment for this lab. This helps avoid conflicts with existing local coco skills, preferences etc and is easier to setup. 
-
-First go to https://github.com/codespaces - and locate the Blank template, click Use this Template.
-
-<img width="1710" height="887" alt="image" src="https://github.com/user-attachments/assets/2b518bca-3972-492d-a577-ab567a4238ac" />
-
-
-This will launch your new Codespace. Now - open a terminal and run the following command to install the coco CLI
+Open a terminal and run the following command to install the coco CLI
 
 ```curl -LsS https://ai.snowflake.com/static/cc-scripts/install.sh | sh```
 

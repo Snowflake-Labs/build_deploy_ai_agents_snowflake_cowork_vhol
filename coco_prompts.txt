@@ -42,4 +42,4 @@ A few ideas of things to try
 - A new orchestration model
 - Enriched tool descriptions
 
-The world is your oyster - get creative and see if you can impress the judges - LLM and Human!
+The world is your oyster - get creative and see if you can impress the LLM judges. 
