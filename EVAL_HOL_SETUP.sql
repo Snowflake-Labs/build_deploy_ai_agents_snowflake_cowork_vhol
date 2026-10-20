@@ -5,7 +5,7 @@
 -- - Database and tables with sample data
 -- - Semantic view for Cortex Analyst
 -- - Cortex Search service for content discovery
--- - Stored procedure for report generation
+-- - Agent skill (SKILL.md on a stage) for report generation
 -- - Cortex Agent integrating all tools
 --
 -- Prerequisites:
@@ -22,6 +22,20 @@
 
 -- Use ACCOUNTADMIN to setup
 USE ROLE ACCOUNTADMIN;
+
+-- --------------------------------------------------------------------
+-- !! ACCOUNT-LEVEL PARAMETER CHANGE - REVIEW BEFORE RUNNING !!
+-- --------------------------------------------------------------------
+-- The MARKETING_AGENT created in Section 10 includes the web_search tool,
+-- which requires Cortex web search to be enabled for the ENTIRE ACCOUNT.
+-- This is not scoped to this lab: it allows any Cortex Agent / CoWork /
+-- Cortex Code user in the account with web search configured to send
+-- queries to an external web search provider. Confirm this aligns with
+-- your organization's security and data governance policies first.
+-- To skip, comment out the line below and remove the web_search tool from
+-- the agent specification in Section 10. To revert after the lab:
+--   ALTER ACCOUNT UNSET ENABLE_CORTEX_WEBSEARCH;
+ALTER ACCOUNT SET ENABLE_CORTEX_WEBSEARCH = TRUE;
 
 -- Create database using variable
 CREATE DATABASE IF NOT EXISTS COWORK_AI_HOL_DB;
@@ -345,142 +359,93 @@ CREATE OR REPLACE CORTEX SEARCH SERVICE MARKETING_CAMPAIGNS_SEARCH
 SHOW CORTEX SEARCH SERVICES LIKE 'MARKETING_CAMPAIGNS_SEARCH';
 
 -- ====================================================================
--- SECTION 8: CREATE REPORT GENERATION STORED PROCEDURE
+-- SECTION 8: CREATE CAMPAIGN REPORT AGENT SKILL
 -- ====================================================================
+-- Instead of a stored procedure that hand-builds HTML, report generation is
+-- packaged as an agent skill (SKILL.md) on a named stage. The agent reads the
+-- skill on demand, gathers data with its Analyst/Search tools, and uses the
+-- code execution sandbox to render the HTML report.
 
--- Create an internal stage with directory table enabled
-CREATE OR REPLACE STAGE CAMPAIGN_REPORTS
+-- Named stage to host agent skills (one folder per skill, SKILL.md at its root)
+CREATE OR REPLACE STAGE COWORK_AI_HOL_DB.AGENTS.AGENT_SKILLS
   DIRECTORY = (ENABLE = TRUE)
-  COMMENT = 'Internal stage to host generated campaign reports';
+  ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE')
+  COMMENT = 'Internal stage hosting Cortex Agent skills';
 
-CREATE OR REPLACE PROCEDURE GENERATE_CAMPAIGN_REPORT_HTML(campaign_id NUMBER)
-RETURNS VARCHAR
-LANGUAGE SQL
-EXECUTE AS OWNER                                                                                                                         
-AS
-$$
-DECLARE
-  report_html VARCHAR;
-  campaign_info VARCHAR;
-  performance_metrics VARCHAR;
-  feedback_summary VARCHAR;
-  file_name VARCHAR;
-  upload_result VARCHAR;
-  org_name VARCHAR;
-  account_name VARCHAR;
-BEGIN
-  -- Get campaign basic information
-  SELECT 
-    '<h1>Campaign Report</h1>' ||
-    '<h2>Campaign: ' || campaign_name || '</h2>' ||
-    '<p><strong>Type:</strong> ' || campaign_type || '</p>' ||
-    '<p><strong>Channel:</strong> ' || channel || '</p>' ||
-    '<p><strong>Duration:</strong> ' || start_date || ' to ' || end_date || '</p>' ||
-    '<p><strong>Budget:</strong> $' || budget_allocated || '</p>' ||
-    '<p><strong>Target Audience:</strong> ' || target_audience || '</p>' ||
-    '<p><strong>Status:</strong> ' || status || '</p>'
-  INTO campaign_info
-  FROM CAMPAIGNS
-  WHERE campaign_id = :campaign_id;
-  
-  -- Get performance metrics summary
-  SELECT 
-    '<h3>Performance Metrics</h3>' ||
-    '<table border="1" style="border-collapse:collapse; width:100%">' ||
-    '<tr><th>Metric</th><th>Value</th></tr>' ||
-    '<tr><td>Total Impressions</td><td>' || TO_CHAR(SUM(impressions), '999,999,999') || '</td></tr>' ||
-    '<tr><td>Total Clicks</td><td>' || TO_CHAR(SUM(clicks), '999,999,999') || '</td></tr>' ||
-    '<tr><td>Total Conversions</td><td>' || TO_CHAR(SUM(conversions), '999,999') || '</td></tr>' ||
-    '<tr><td>Click-Through Rate</td><td>' || ROUND((SUM(clicks)::FLOAT / SUM(impressions)::FLOAT) * 100, 2) || '%</td></tr>' ||
-    '<tr><td>Conversion Rate</td><td>' || ROUND((SUM(conversions)::FLOAT / SUM(clicks)::FLOAT) * 100, 2) || '%</td></tr>' ||
-    '<tr><td>Average Cost Per Click</td><td>$' || ROUND(AVG(cost_per_click), 2) || '</td></tr>' ||
-    '<tr><td>Average Cost Per Acquisition</td><td>$' || ROUND(AVG(cost_per_acquisition), 2) || '</td></tr>' ||
-    '<tr><td>Total Revenue Generated</td><td>$' || TO_CHAR(SUM(revenue_generated), '999,999,999.99') || '</td></tr>' ||
-    '<tr><td>Average ROI</td><td>' || ROUND(AVG(roi_percentage), 2) || '%</td></tr>' ||
-    '<tr><td>Average Engagement Rate</td><td>' || ROUND(AVG(engagement_rate) * 100, 2) || '%</td></tr>' ||
-    '</table>'
-  INTO performance_metrics
-  FROM CAMPAIGN_PERFORMANCE
-  WHERE campaign_id = :campaign_id;
-  
-  -- Get feedback summary
-  SELECT 
-    '<h3>Customer Feedback Summary</h3>' ||
-    '<p><strong>Average Satisfaction Score:</strong> ' || ROUND(AVG(satisfaction_score), 2) || ' / 5.0</p>' ||
-    '<p><strong>Number of Feedback Entries:</strong> ' || COUNT(*) || '</p>' ||
-    '<h4>Recent Feedback:</h4>' ||
-    LISTAGG(
-      '<div style="border:1px solid #ccc; padding:10px; margin:10px 0;">' ||
-      '<p><strong>Segment:</strong> ' || customer_segment || '</p>' ||
-      '<p><strong>Score:</strong> ' || satisfaction_score || ' / 5.0</p>' ||
-      '<p><strong>Comments:</strong> ' || detailed_comments || '</p>' ||
-      '<p><strong>Recommendations:</strong> ' || recommended_improvements || '</p>' ||
-      '</div>',
-      ''
-    ) WITHIN GROUP (ORDER BY feedback_date DESC)
-  INTO feedback_summary
-  FROM CAMPAIGN_FEEDBACK
-  WHERE campaign_id = :campaign_id;
-  
-  -- Combine all sections
-  report_html := '<!DOCTYPE html><html><head><style>' ||
-    'body { font-family: Arial, sans-serif; margin: 20px; }' ||
-    'table { margin: 20px 0; }' ||
-    'th { background-color: #4CAF50; color: white; padding: 10px; text-align: left; }' ||
-    'td { padding: 10px; }' ||
-    'tr:nth-child(even) { background-color: #f2f2f2; }' ||
-    '</style></head><body>' ||
-    campaign_info ||
-    performance_metrics ||
-    COALESCE(feedback_summary, '<p>No feedback available</p>') ||
-    '<hr><p style="text-align:center; color:#666;">Report Generated: ' || CURRENT_TIMESTAMP() || '</p>' ||
-    '</body></html>';
-  
-  -- Generate filename with timestamp
-  file_name := 'CAMPAIGN_' || campaign_id || '_' || TO_CHAR(CURRENT_TIMESTAMP(), 'YYYY-MM-DD_HH_MI') || '.html';
-  
-  -- Create a file format for HTML content
-  EXECUTE IMMEDIATE '
-    CREATE OR REPLACE FILE FORMAT html_format
-    TYPE = ''CSV''
-    FIELD_DELIMITER = NONE
-    RECORD_DELIMITER = NONE
-    SKIP_HEADER = 0
-    FIELD_OPTIONALLY_ENCLOSED_BY = NONE
-    ESCAPE_UNENCLOSED_FIELD = NONE
-    COMPRESSION = NONE
-    ENCODING = ''UTF8''
-  ';
-  
-  -- Create temporary table to hold the HTML content
-  EXECUTE IMMEDIATE 'CREATE OR REPLACE TEMPORARY TABLE temp_report_' || campaign_id || ' (html_content VARCHAR(16777216))';
-  
-  -- Insert the HTML content
-  EXECUTE IMMEDIATE 'INSERT INTO temp_report_' || campaign_id || ' VALUES (?)' USING (report_html);
-  
-  -- Copy the file to the stage using the HTML file format
-  EXECUTE IMMEDIATE 
-    'COPY INTO @CAMPAIGN_REPORTS/' || file_name || 
-    ' FROM (SELECT html_content FROM temp_report_' || campaign_id || ') ' ||
-    'FILE_FORMAT = html_format ' ||
-    'SINGLE = TRUE OVERWRITE = TRUE HEADER = FALSE';
-  
-  -- Clean up temporary table
-  EXECUTE IMMEDIATE 'DROP TABLE temp_report_' || campaign_id;
+-- Write SKILL.md to @AGENT_SKILLS/skills/campaign-report/ (no local PUT required)
+COPY INTO @COWORK_AI_HOL_DB.AGENTS.AGENT_SKILLS/skills/campaign-report/SKILL.md
+FROM (SELECT $$---
+name: campaign-report
+description: Generate a comprehensive, presentation-ready HTML report for a specific marketing campaign, covering campaign details, performance metrics (impressions, clicks, conversions, CTR, conversion rate, CPC, CPA, revenue, ROI, engagement), and customer feedback. Use when the user asks to create, build, generate, or export a report for a campaign.
+---
 
-SELECT CURRENT_ORGANIZATION_NAME(), CURRENT_ACCOUNT_NAME() 
-  INTO ORG_NAME, ACCOUNT_NAME;
-  
-  upload_result := 'Report '|| file_name || ' generated and uploaded to stage. View here - https://app.snowflake.com/'|| ORG_NAME ||'/' || ACCOUNT_NAME ||'/#/data/databases/COWORK_AI_HOL_DB/schemas/AGENTS/stage/CAMPAIGN_REPORTS';
+# Campaign Report
 
-  
-  RETURN upload_result;
-END;
-$$;
+Produce a single self-contained HTML report for one campaign.
 
--- Verify procedure was created
+## 1. Identify the campaign
+- The user may give a campaign ID or a campaign name. If only a name is given, use
+  `query_performance_metrics` to resolve it to a campaign ID.
+- If the request is ambiguous (several matching campaigns, or none specified), ask the
+  user which campaign they mean before continuing.
 
-SHOW PROCEDURES like 'GENERATE_CAMPAIGN_REPORT_HTML';
+## 2. Gather the data (use the SQL tools, not the sandbox)
+Use `query_performance_metrics` to retrieve:
+- Campaign details: name, type, channel, start/end date, budget allocated, target audience, status.
+- Aggregated performance: total impressions, clicks, conversions, revenue generated;
+  CTR = clicks / impressions; conversion rate = conversions / clicks;
+  average cost per click, average cost per acquisition, average ROI %, average engagement rate.
+
+Use `search_campaign_content` (filtered to the campaign) to retrieve:
+- Customer feedback: average satisfaction score (out of 5), number of feedback entries,
+  and the most recent entries with customer segment, score, detailed comments, and
+  recommended improvements.
+- Notable content such as A/B test results or campaign description.
+
+Only report values returned by the tools. If a section has no data, say so in the report
+(e.g. "No feedback available") rather than inventing numbers.
+
+## 3. Optional market context
+If the user asks for benchmarks or industry context, use `web_search` and cite the
+sources in a clearly labeled "External Context" section. Keep it separate from campaign data.
+
+## 4. Render the report with `code_execution`
+Write a Python script in the sandbox that builds the HTML from the retrieved results and
+saves it to the workspace as `campaign_reports/CAMPAIGN_<id>_<YYYY-MM-DD_HH_MM>.html`.
+
+Report layout:
+1. Title "Campaign Report" and campaign name
+2. Campaign overview (type, channel, duration, budget, audience, status)
+3. Performance metrics table (Metric | Value), numbers formatted with thousands
+   separators, currency with `$` and 2 decimals, rates as percentages with 2 decimals
+4. Customer feedback summary followed by individual feedback cards (newest first)
+5. Key insights: 3-5 bullet points derived strictly from the data above
+6. Footer with the generation timestamp
+
+Styling: inline `<style>` only (Arial/sans-serif, 20px margin, header row background
+`#4CAF50` with white text, zebra-striped rows). No external CSS, JS, fonts, or images.
+HTML-escape all text that came from the data.
+
+## 5. Respond
+Summarize the headline metrics and insights in the chat, and give the path of the saved
+HTML file so the user can open or download it.
+$$)
+FILE_FORMAT = (
+  TYPE = CSV
+  FIELD_DELIMITER = NONE
+  RECORD_DELIMITER = NONE
+  FIELD_OPTIONALLY_ENCLOSED_BY = NONE
+  ESCAPE_UNENCLOSED_FIELD = NONE
+  COMPRESSION = NONE
+  ENCODING = 'UTF8'
+)
+SINGLE = TRUE
+OVERWRITE = TRUE
+HEADER = FALSE;
+
+-- Verify the skill was uploaded
+ALTER STAGE COWORK_AI_HOL_DB.AGENTS.AGENT_SKILLS REFRESH;
+LS @COWORK_AI_HOL_DB.AGENTS.AGENT_SKILLS PATTERN = '.*SKILL\\.md';
 -- ====================================================================
 -- SECTION 9: TEST NEWLY CREATED SERVICES
 -- ====================================================================
@@ -510,10 +475,11 @@ SELECT PARSE_JSON(
     )
 ) as search_results;
 
--- Test stored procedure
-CALL GENERATE_CAMPAIGN_REPORT_HTML(1);
-
-LS @CAMPAIGN_REPORTS;
+-- Preview the campaign report skill content
+SELECT $1 AS skill_md
+FROM @COWORK_AI_HOL_DB.AGENTS.AGENT_SKILLS/skills/campaign-report/SKILL.md
+  (FILE_FORMAT => 'AGENT_EVAL_QUICKSTART_CSV_FORMAT')
+LIMIT 5;
 
 -- ====================================================================
 -- SECTION 10: CREATE CORTEX AGENT
@@ -552,19 +518,23 @@ FROM SPECIFICATION $$
         },
         {
             "tool_spec": {
-                "type": "generic",
-                "name": "generate_campaign_report",
-                "description": "Generate a comprehensive HTML report for a specific campaign including all performance metrics, customer feedback, and key insights. Returns formatted report ready for PDF conversion.",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "campaign_id": {
-                            "type": "integer",
-                            "description": "The unique identifier of the campaign to generate a report for"
-                        }
-                    },
-                    "required": ["campaign_id"]
-                }
+                "type": "code_execution",
+                "name": "code_execution"
+            }
+        },
+        {
+            "tool_spec": {
+                "type": "web_search",
+                "name": "web_search"
+            }
+        }
+    ],
+    "skills": [
+        {
+            "name": "campaign-report",
+            "source": {
+                "type": "STAGE",
+                "path": "@COWORK_AI_HOL_DB.AGENTS.AGENT_SKILLS/skills/campaign-report"
             }
         }
     ],
@@ -585,13 +555,9 @@ FROM SPECIFICATION $$
             },
             "search_service": "COWORK_AI_HOL_DB.AGENTS.MARKETING_CAMPAIGNS_SEARCH"
         },
-        "generate_campaign_report": {
-            "type": "procedure",
-            "identifier": "COWORK_AI_HOL_DB.AGENTS.GENERATE_CAMPAIGN_REPORT_HTML",
-            "execution_environment": {
-                "type": "warehouse",
-                "warehouse": "COWORK_AI_HOL_WH",
-                "query_timeout": 300
+        "code_execution": {
+            "permission_policy": {
+                "type": "always_allow"
             }
         }
     }
@@ -731,7 +697,7 @@ metrics:
       {{output}}
 
       The complete agent execution trace is provided as context, including:
-      - All tool calls made (query_performance_metrics, search_campaign_content, generate_campaign_report)
+      - All tool calls made (query_performance_metrics, search_campaign_content, code_execution, web_search, campaign-report skill)
       - Tool outputs and retrieved data
       - Intermediate reasoning steps
 
@@ -776,10 +742,11 @@ metrics:
       campaigns. Execution efficiency measures how optimally the agent uses its available
       tools to accomplish the user''s goal.
 
-      The agent has access to three tools:
+      The agent has access to the following tools and skills:
       1. query_performance_metrics - For quantitative analysis (revenue, ROI, conversions, etc.)
       2. search_campaign_content - For qualitative insights (descriptions, feedback, A/B tests)
-      3. generate_campaign_report - For creating comprehensive HTML reports
+      3. campaign-report skill (via code_execution) - For creating comprehensive HTML reports
+      4. web_search - For external/industry context
 
       Analyze the complete agent execution trace provided as context, including:
       - Execution duration: {{duration}} milliseconds
