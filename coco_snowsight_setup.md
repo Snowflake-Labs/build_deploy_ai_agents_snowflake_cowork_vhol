@@ -4,7 +4,7 @@ CoCo is built into Snowsight — no install required. You'll run the lab prompts
 
 ## Step 1: Set your role
 
-Make sure you are using **AGENT_EVAL_ROLE** in Snowsight before proceeding. You can switch
+Make sure you are using **COWORK_AI_HOL_ROLE** in Snowsight before proceeding. You can switch
 roles from the user menu in the bottom-left corner of Snowsight.
 
 ![set default role](./assets/set_default_role.png)

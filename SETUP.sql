@@ -116,6 +116,8 @@ GRANT CREATE AGENT ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
 -- Use new role
 USE ROLE COWORK_AI_HOL_ROLE;
 
+-- Lab code/data repo. If the repo moves (e.g. to Snowflake-Labs), update BOTH
+-- API_ALLOWED_PREFIXES and ORIGIN below - nothing else references the GitHub URL.
 -- Create API integration for GitHub (public repo, no secrets needed)
 CREATE API INTEGRATION IF NOT EXISTS GIT_API_INTEGRATION_COWORK_AI_HOL
     API_PROVIDER = git_https_api

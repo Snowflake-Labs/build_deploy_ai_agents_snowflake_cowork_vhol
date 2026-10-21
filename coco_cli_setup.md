@@ -16,7 +16,7 @@ Once installed - click on the Snowflake connection icon in the top left corner.
 Click add connection. 
 
 
-Fill out as below. **Ensure you set the role to AGENT_EVAL_ROLE** for this connection to not encounter permissions errors in the lab.
+Fill out as below. **Ensure you set the role to COWORK_AI_HOL_ROLE** for this connection to not encounter permissions errors in the lab.
 
 <img width="484" height="860" alt="image" src="https://github.com/user-attachments/assets/4e042aad-a322-4b63-b8bc-46bd76209b32" /> <br>
 
@@ -24,7 +24,7 @@ Your account identifier can be found by clicking the User menu in the bottom lef
 
 <img width="664" height="474" alt="image" src="https://github.com/user-attachments/assets/c3b8c83b-390a-44a9-8d23-ec5dbc1e749e" /> <br>
 
-Local OAuth should open a new browser for you to authenticate with the credentials provided on the dataops registration page. Once you've signed in you should be all set. Run ```cortex -c your_connection_name``` to start CoCo with your new instance.
+Local OAuth should open a new browser for you to authenticate with your Snowflake credentials. Once you've signed in you should be all set. Run ```cortex -c your_connection_name``` to start CoCo with your new instance.
 
 NOTE - If you have a lot of custom configurations in your CoCo instance (custom skills related to agent optimization, highly opionated AGENTS.md files etc etc) you may encounter behaviors that differ from the intended experience. See below instructions for setting up a clean CoCo installation if you think your CoCo config may cause conflicts with existing agent-studio skills.
 
@@ -60,7 +60,7 @@ We will first have to generate a PAT. To do so first click on the 'U' icon in th
 
 <img width="1710" height="886" alt="image" src="https://github.com/user-attachments/assets/1596b9b8-09a3-46ac-b340-e410e26a9d6b" />
 
-IMPORTANT - select the newly created AGENT_EVAL_ROLE as the role associated with the PAT. If you have not run throguht the SETUP.sql you will need to do so before proceeding. 
+IMPORTANT - select the newly created COWORK_AI_HOL_ROLE as the role associated with the PAT. If you have not run through the SETUP.sql you will need to do so before proceeding. 
 
 <img width="569" height="513" alt="image" src="https://github.com/user-attachments/assets/dfcc2ab8-f66a-43bf-b54f-50d6183324fb" />
 
@@ -74,7 +74,7 @@ Back in CoCo - paste in your newly created PAT.
 Next fill out the connection details. 
 
 
-Specify USER for user and AGENT_EVAL_ROLE for role.
+Specify USER for user and COWORK_AI_HOL_ROLE for role.
 
 <img width="467" height="274" alt="image" src="https://github.com/user-attachments/assets/197f78d6-2228-467c-b8ec-00c37ec18aa9" />
 

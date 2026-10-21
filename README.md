@@ -1,6 +1,8 @@
 # Eval Based Agentic Optimization HOL  
 Hands on Lab materials for building, evaluating and deploying AI Agents on Snowflake CoWork
 
+> A self-paced version of this lab is available as a Snowflake Guide: [Build, Evaluate and Deploy AI Agents with Snowflake CoWork](https://www.snowflake.com/en/developers/guides/build-evaluate-and-deploy-ai-agents-with-snowflake-cowork/) (link goes live once the guide is published).
+
 # Instructions
 
 ## 1. Setup 
