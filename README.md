@@ -5,7 +5,7 @@ Hands on Lab materials for building, evaluating and deploying AI Agents on Snowf
 
 ## 1. Setup 
 
-Run the [EVAL_HOL_SETUP.sql](EVAL_HOL_SETUP.sql) file to provision a new database with data, a semantic view, a cortex search service and a custom tool before wrapping these services into a baseline agent and running your first evaluation.
+Run the [SETUP.sql](SETUP.sql) file to provision a new database with data, a semantic view, a Cortex Search service and a campaign report agent skill before wrapping these services (plus code execution and web search) into a baseline agent and running your first evaluation.
 
 ## 2. Eval Investigation
 
@@ -26,7 +26,7 @@ Clicking into the eval run - we can see individual and aggregate scores for all 
 Clicking into a single record shows us the trace for that request and the metric scores. We can drill into each metric to see not only the score but the **criteria** the metric used to generate the score and the **reason** that score was given. This qualitative info combined with the quantitative scores gives agent developers, and importantly CoCo, very good feedback to understand the root cause of low eval scores.
 
 
-## 4. Agent Optimization
+## 3. Agent Optimization
 
 Time to improve your agent using CoCo! You have two options depending on your environment. Both options use the same prompts from [coco_prompts.txt](./coco_prompts.txt) to analyze the evaluation results and drive improvements.
 
@@ -58,12 +58,43 @@ Follow the full setup guide: [coco_cli_setup.md](./coco_cli_setup.md)
 
 ---
 
-## 5. Challenge!
+## 4. Test Your Agent in Snowflake CoWork
 
-You should have seen a decent improvement in your evaluation metrics going from your baseline to your optimized agent. Now lets take things a bit further and see how far you can take your agent! This is your turn to use your AI and Snowflake knowledge to apply new methods to the agent to see how high we can push our agent quality.
+Now that your agent is optimized, try it the way your business users will - in Snowflake CoWork.
+
+1. Make sure your user's default role is `COWORK_AI_HOL_ROLE` (CoWork uses your default role, and this role owns the agent and its tools).
+2. Open Snowflake CoWork and select **MARKETING_AGENT** from the agent picker.
+3. Ask a few questions that exercise different tools, for example:
+    - "Which channels yield the highest click-through rates?" (Cortex Analyst)
+    - "What was customer feedback around our back to school campaign?" (Cortex Search)
+    - "Generate a report for the holiday gift guide campaign" (campaign report skill + code execution)
+    - "Based on Pew Research Center's Americans' Social Media Use 2025 report, which platforms reach the most U.S. adults, and how do our social campaigns compare?" (web search + Cortex Analyst)
+
+### Try Artifacts
+
+When a response includes a chart or table worth keeping, select **Save** to turn it into an artifact. Artifacts are live references: they keep the underlying query and visualization, refresh against current data, and can be shared with teammates (who see results filtered by their own data permissions).
+
+- Ask: "Show me total revenue and average ROI by campaign type as a bar chart" and save the chart.
+- Open the artifacts hub to find it under **Saved**, then open it and ask a follow-up question.
+- Optionally, share the conversation with a teammate via a link.
+
+See [Artifacts in Snowflake CoWork](https://docs.snowflake.com/en/user-guide/snowflake-cortex/snowflake-cowork/artifacts).
+
+### Try Automations
+
+Automations turn a question into a recurring report delivered to your email, re-run against the latest data each time.
+
+- Ask: "Give me a weekly summary of our top 5 campaigns by ROI with key metrics", then reply "Send me this report every Monday at 9 AM".
+- Or create one manually from the **Automations** tab with a name, instructions, and frequency.
+- Review the automation in the Automations tab and cancel it when you're done with the lab (automations run on your compute).
+
+See [Automations in Snowflake CoWork](https://docs.snowflake.com/en/user-guide/snowflake-cortex/snowflake-cowork/automations).
+
+## 5. Optional Stretch Goals
+
+You should have seen a decent improvement in your evaluation metrics going from your baseline to your optimized agent. If you have time left, see how far you can take your agent! This is your turn to use your AI and Snowflake knowledge to apply new methods to the agent and push agent quality even higher. Remember to commit each change as a new agent version and re-run your evaluation against it.
 
 A few ideas of things to try
 - An updated Semantic Model
 - A new orchestration model
 - Enriched tool descriptions
-

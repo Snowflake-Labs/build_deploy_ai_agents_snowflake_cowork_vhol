@@ -380,54 +380,251 @@ description: Generate a comprehensive, presentation-ready HTML report for a spec
 
 # Campaign Report
 
-Produce a single self-contained HTML report for one campaign.
+Produce a single self-contained HTML report for one campaign. A ready-made renderer,
+`render_report.py`, ships with this skill and handles all HTML layout, styling, number
+formatting, CTR/conversion-rate math, and HTML escaping. Do NOT write HTML yourself.
 
-## 1. Identify the campaign
-- The user may give a campaign ID or a campaign name. If only a name is given, use
-  `query_performance_metrics` to resolve it to a campaign ID.
-- If the request is ambiguous (several matching campaigns, or none specified), ask the
-  user which campaign they mean before continuing.
+Target path: 2 data calls (in parallel) -> 1 code execution -> answer.
 
-## 2. Gather the data (use the SQL tools, not the sandbox)
-Use `query_performance_metrics` to retrieve:
-- Campaign details: name, type, channel, start/end date, budget allocated, target audience, status.
-- Aggregated performance: total impressions, clicks, conversions, revenue generated;
-  CTR = clicks / impressions; conversion rate = conversions / clicks;
-  average cost per click, average cost per acquisition, average ROI %, average engagement rate.
+## 1. Gather the data - ONE parallel step
+Issue both calls in the same step. Identify the campaign by ID or name inside the calls
+themselves; do not run a separate lookup first.
 
-Use `search_campaign_content` (filtered to the campaign) to retrieve:
-- Customer feedback: average satisfaction score (out of 5), number of feedback entries,
-  and the most recent entries with customer segment, score, detailed comments, and
-  recommended improvements.
-- Notable content such as A/B test results or campaign description.
+`query_performance_metrics` - get everything with ONE query. Run this SQL as-is, changing
+only the WHERE clause (use `c.campaign_id = <id>` or `c.campaign_name ILIKE '%<name>%'`).
+Do not rewrite it with semantic-view metric names (TOTAL_BUDGET, TOTAL_IMPRESSIONS, etc.)
+as columns - they are not columns and will fail.
 
-Only report values returned by the tools. If a section has no data, say so in the report
-(e.g. "No feedback available") rather than inventing numbers.
+```sql
+SELECT c.campaign_id, c.campaign_name, c.campaign_type, c.channel, c.start_date, c.end_date,
+       c.target_audience, c.status, c.budget_allocated AS budget,
+       p.impressions, p.clicks, p.conversions, p.revenue, p.avg_roi, p.avg_cpc, p.avg_cpa,
+       p.avg_engagement_rate
+FROM COWORK_AI_HOL_DB.AGENTS.CAMPAIGNS c
+LEFT JOIN (
+  SELECT campaign_id, SUM(impressions) AS impressions, SUM(clicks) AS clicks,
+         SUM(conversions) AS conversions, SUM(revenue_generated) AS revenue,
+         AVG(roi_percentage) AS avg_roi, AVG(cost_per_click) AS avg_cpc,
+         AVG(cost_per_acquisition) AS avg_cpa, AVG(engagement_rate) AS avg_engagement_rate
+  FROM COWORK_AI_HOL_DB.AGENTS.CAMPAIGN_PERFORMANCE
+  GROUP BY campaign_id
+) p ON p.campaign_id = c.campaign_id
+WHERE c.campaign_name ILIKE '%<campaign name>%';
+```
 
-## 3. Optional market context
-If the user asks for benchmarks or industry context, use `web_search` and cite the
-sources in a clearly labeled "External Context" section. Keep it separate from campaign data.
+`search_campaign_content` - one search with the campaign name in the query (filter on
+CAMPAIGN_NAME if known; there is no CAMPAIGN_ID filter), asking for customer feedback
+(segment, satisfaction score, comments, recommended improvements) and A/B test notes.
 
-## 4. Render the report with `code_execution`
-Write a Python script in the sandbox that builds the HTML from the retrieved results and
-saves it to the workspace as `campaign_reports/CAMPAIGN_<id>_<YYYY-MM-DD_HH_MM>.html`.
+If the campaign is ambiguous (several matches or none), ask the user which one they mean.
+Only retry a call if it errored; fix the specific issue once.
 
-Report layout:
-1. Title "Campaign Report" and campaign name
-2. Campaign overview (type, channel, duration, budget, audience, status)
-3. Performance metrics table (Metric | Value), numbers formatted with thousands
-   separators, currency with `$` and 2 decimals, rates as percentages with 2 decimals
-4. Customer feedback summary followed by individual feedback cards (newest first)
-5. Key insights: 3-5 bullet points derived strictly from the data above
-6. Footer with the generation timestamp
+## 2. Optional market context
+Only if the user asks for benchmarks or industry context, add one `web_search` call to
+the step above and include the results under `external_context`.
 
-Styling: inline `<style>` only (Arial/sans-serif, 20px margin, header row background
-`#4CAF50` with white text, zebra-striped rows). No external CSS, JS, fonts, or images.
-HTML-escape all text that came from the data.
+## 3. Render with ONE `code_execution` call
+In a single script, write the JSON below to `report_data.json` and run the renderer. It
+saves straight to `/workspace/campaign_reports/`, so do not copy or move the file. The
+renderer is mounted read-only at the path below; the `find` fallback only runs if it moved.
+Do not run a separate command to locate it.
 
-## 5. Respond
-Summarize the headline metrics and insights in the chat, and give the path of the saved
-HTML file so the user can open or download it.
+```bash
+cat > report_data.json << 'EOF'
+{
+  "campaign": {"id": 8, "name": "...", "type": "...", "channel": "...",
+               "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "budget": 150000,
+               "target_audience": "...", "status": "..."},
+  "metrics": {"impressions": 0, "clicks": 0, "conversions": 0, "revenue": 0.0,
+              "avg_roi": 0.0, "avg_cpc": 0.0, "avg_cpa": 0.0, "avg_engagement_rate": 0.0},
+  "feedback": {"avg_score": 0.0, "count": 0,
+               "entries": [{"date": "", "segment": "", "score": 0.0,
+                            "comments": "", "improvements": ""}]},
+  "insights": ["3-5 bullet points derived strictly from the data above"],
+  "external_context": [{"text": "", "source": "", "url": ""}]
+}
+EOF
+R=/snowflake/stages/cowork_ai_hol_db_agents_agent_skills/skills/campaign-report/render_report.py
+[ -f "$R" ] || R=$(find / -name render_report.py -path '*campaign-report*' 2>/dev/null | head -1)
+python3 "$R" report_data.json /workspace/campaign_reports
+```
+
+Field rules:
+- Use raw numbers from tool results (no `$`, `%`, or commas). `avg_roi` is a percent
+  value (e.g. 142.46); `avg_engagement_rate` is a fraction (e.g. 0.052).
+- Use `null` for any value the tools did not return; omit `feedback` if there is none,
+  and omit `external_context` unless web search was used.
+- Only include values returned by the tools - never invent numbers.
+
+The script prints the saved file path. Do not re-open, list, or validate the file
+afterwards - a printed path means success.
+
+Then call `present_file` ONCE with that path so the user can download the report. If it
+returns an error, do not retry - just give the saved path in your answer.
+
+## 4. Respond
+State the saved file path, the headline metrics (impressions, clicks, conversions, CTR,
+conversion rate, revenue, ROI), and the same 3-5 key insights. Keep it concise.
+$$)
+FILE_FORMAT = (
+  TYPE = CSV
+  FIELD_DELIMITER = NONE
+  RECORD_DELIMITER = NONE
+  FIELD_OPTIONALLY_ENCLOSED_BY = NONE
+  ESCAPE_UNENCLOSED_FIELD = NONE
+  COMPRESSION = NONE
+  ENCODING = 'UTF8'
+)
+SINGLE = TRUE
+OVERWRITE = TRUE
+HEADER = FALSE;
+
+-- Write the report renderer script used by the skill. Rendering HTML from a small JSON
+-- payload with a pre-built script is much faster than having the agent hand-write HTML.
+COPY INTO @COWORK_AI_HOL_DB.AGENTS.AGENT_SKILLS/skills/campaign-report/render_report.py
+FROM (SELECT $$"""Render a campaign report HTML file from a JSON data file.
+
+Usage: python render_report.py <data.json> [output_dir]
+Prints the path of the saved HTML file.
+"""
+import html
+import json
+import os
+import sys
+from datetime import datetime
+
+CSS = (
+    "body{font-family:Arial,sans-serif;margin:20px;color:#222}"
+    "h1{margin-bottom:0}h2{margin-top:4px;color:#444}"
+    "table{border-collapse:collapse;width:100%;margin:20px 0}"
+    "th{background-color:#4CAF50;color:white;padding:10px;text-align:left}"
+    "td{padding:10px}tr:nth-child(even){background-color:#f2f2f2}"
+    ".card{border:1px solid #ccc;padding:10px;margin:10px 0}"
+    ".muted{color:#666}footer{text-align:center;color:#666}"
+)
+
+
+def esc(value):
+    return html.escape("" if value is None else str(value))
+
+
+def num(value, decimals=0):
+    if value is None:
+        return "N/A"
+    return f"{float(value):,.{decimals}f}"
+
+
+def money(value):
+    return "N/A" if value is None else "$" + num(value, 2)
+
+
+def pct(value):
+    return "N/A" if value is None else num(value, 2) + "%"
+
+
+def ratio_pct(numer, denom):
+    if not numer or not denom:
+        return None
+    return float(numer) / float(denom) * 100
+
+
+def render(data):
+    c = data.get("campaign", {})
+    m = data.get("metrics", {})
+    fb = data.get("feedback") or {}
+    parts = [
+        "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Campaign Report</title>",
+        f"<style>{CSS}</style></head><body>",
+        "<h1>Campaign Report</h1>",
+        f"<h2>{esc(c.get('name'))}</h2>",
+        "<h3>Campaign Overview</h3><table><tr><th>Attribute</th><th>Value</th></tr>",
+    ]
+    overview = [
+        ("Campaign ID", esc(c.get("id"))),
+        ("Type", esc(c.get("type"))),
+        ("Channel", esc(c.get("channel"))),
+        ("Duration", f"{esc(c.get('start_date'))} to {esc(c.get('end_date'))}"),
+        ("Budget", money(c.get("budget"))),
+        ("Target Audience", esc(c.get("target_audience"))),
+        ("Status", esc(c.get("status"))),
+    ]
+    parts += [f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in overview]
+    parts.append("</table>")
+
+    engagement = m.get("avg_engagement_rate")
+    metrics = [
+        ("Total Impressions", num(m.get("impressions"))),
+        ("Total Clicks", num(m.get("clicks"))),
+        ("Total Conversions", num(m.get("conversions"))),
+        ("Click-Through Rate", pct(ratio_pct(m.get("clicks"), m.get("impressions")))),
+        ("Conversion Rate", pct(ratio_pct(m.get("conversions"), m.get("clicks")))),
+        ("Average Cost Per Click", money(m.get("avg_cpc"))),
+        ("Average Cost Per Acquisition", money(m.get("avg_cpa"))),
+        ("Total Revenue Generated", money(m.get("revenue"))),
+        ("Average ROI", pct(m.get("avg_roi"))),
+        ("Average Engagement Rate", pct(None if engagement is None else float(engagement) * 100)),
+    ]
+    parts.append("<h3>Performance Metrics</h3><table><tr><th>Metric</th><th>Value</th></tr>")
+    parts += [f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in metrics]
+    parts.append("</table>")
+
+    parts.append("<h3>Customer Feedback Summary</h3>")
+    entries = sorted(fb.get("entries") or [], key=lambda e: str(e.get("date") or ""), reverse=True)
+    if entries or fb.get("count"):
+        parts.append(f"<p><strong>Average Satisfaction Score:</strong> {num(fb.get('avg_score'), 2)} / 5.0</p>")
+        parts.append(f"<p><strong>Number of Feedback Entries:</strong> {num(fb.get('count') or len(entries))}</p>")
+        for e in entries:
+            parts.append(
+                "<div class='card'>"
+                + (f"<p class='muted'>{esc(e.get('date'))}</p>" if e.get("date") else "")
+                + f"<p><strong>Segment:</strong> {esc(e.get('segment'))}</p>"
+                + f"<p><strong>Score:</strong> {num(e.get('score'), 2)} / 5.0</p>"
+                + f"<p><strong>Comments:</strong> {esc(e.get('comments'))}</p>"
+                + f"<p><strong>Recommendations:</strong> {esc(e.get('improvements'))}</p></div>"
+            )
+    else:
+        parts.append("<p>No feedback available</p>")
+
+    insights = data.get("insights") or []
+    if insights:
+        parts.append("<h3>Key Insights</h3><ul>")
+        parts += [f"<li>{esc(i)}</li>" for i in insights]
+        parts.append("</ul>")
+
+    external = data.get("external_context") or []
+    if external:
+        parts.append("<h3>External Context</h3><ul>")
+        for x in external:
+            source = esc(x.get("source"))
+            url = x.get("url") or ""
+            # Only plain http(s) links are rendered as hyperlinks
+            if url.startswith(("http://", "https://")):
+                source = f"<a href='{esc(url)}'>{source or esc(url)}</a>"
+            parts.append(f"<li>{esc(x.get('text'))} <span class='muted'>({source})</span></li>")
+        parts.append("</ul>")
+
+    generated = datetime.now().strftime("%Y-%m-%d %H:%M")
+    parts.append(f"<hr><footer>Report Generated: {generated}</footer></body></html>")
+    return "".join(parts)
+
+
+def main():
+    if len(sys.argv) < 2:
+        sys.exit("Usage: python render_report.py <data.json> [output_dir]")
+    with open(sys.argv[1]) as f:
+        data = json.load(f)
+    out_dir = sys.argv[2] if len(sys.argv) > 2 else "campaign_reports"
+    os.makedirs(out_dir, exist_ok=True)
+    campaign_id = str(data.get("campaign", {}).get("id", "UNKNOWN"))
+    safe_id = "".join(ch for ch in campaign_id if ch.isalnum() or ch in "-_") or "UNKNOWN"
+    path = os.path.join(out_dir, f"CAMPAIGN_{safe_id}_{datetime.now().strftime('%Y-%m-%d_%H_%M')}.html")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(render(data))
+    print(os.path.abspath(path))
+
+
+if __name__ == "__main__":
+    main()
 $$)
 FILE_FORMAT = (
   TYPE = CSV
@@ -444,7 +641,7 @@ HEADER = FALSE;
 
 -- Verify the skill was uploaded
 ALTER STAGE COWORK_AI_HOL_DB.AGENTS.AGENT_SKILLS REFRESH;
-LS @COWORK_AI_HOL_DB.AGENTS.AGENT_SKILLS PATTERN = '.*SKILL\\.md';
+LS @COWORK_AI_HOL_DB.AGENTS.AGENT_SKILLS/skills/campaign-report/;
 -- ====================================================================
 -- SECTION 9: TEST NEWLY CREATED SERVICES
 -- ====================================================================

@@ -60,7 +60,7 @@ We will first have to generate a PAT. To do so first click on the 'U' icon in th
 
 <img width="1710" height="886" alt="image" src="https://github.com/user-attachments/assets/1596b9b8-09a3-46ac-b340-e410e26a9d6b" />
 
-IMPORTANT - select the newly created AGENT_EVAL_ROLE as the role associated with the PAT. If you have not run throguht the EVAL_HOL_SETUP.sql you will need to do so before proceeding. 
+IMPORTANT - select the newly created AGENT_EVAL_ROLE as the role associated with the PAT. If you have not run throguht the SETUP.sql you will need to do so before proceeding. 
 
 <img width="569" height="513" alt="image" src="https://github.com/user-attachments/assets/dfcc2ab8-f66a-43bf-b54f-50d6183324fb" />
 
