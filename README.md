@@ -100,3 +100,11 @@ A few ideas of things to try
 - An updated Semantic Model
 - A new orchestration model
 - Enriched tool descriptions
+
+## License
+
+Copyright 2026 Snowflake Inc.
+
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full text.
+
+The sample data in `data/` is synthetic and was created for this lab.
