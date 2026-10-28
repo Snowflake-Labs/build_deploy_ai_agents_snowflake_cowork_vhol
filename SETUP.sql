@@ -63,11 +63,6 @@ GRANT USAGE ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
 GRANT CREATE TABLE ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
 GRANT CREATE STAGE ON SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
 
-
--- Specialized db/application roles
-GRANT DATABASE ROLE SNOWFLAKE.CORTEX_USER TO ROLE COWORK_AI_HOL_ROLE;
-GRANT APPLICATION ROLE SNOWFLAKE.AI_OBSERVABILITY_EVENTS_LOOKUP TO ROLE COWORK_AI_HOL_ROLE;
-
 -- Required: enables access to CoCo 
 GRANT DATABASE ROLE SNOWFLAKE.COPILOT_USER TO ROLE COWORK_AI_HOL_ROLE;
 
@@ -81,6 +76,8 @@ GRANT EXECUTE TASK ON ACCOUNT TO ROLE COWORK_AI_HOL_ROLE;
 
 -- Run evaluations
 GRANT MONITOR ON FUTURE AGENTS IN SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE COWORK_AI_HOL_ROLE;
+GRANT MONITOR ON FUTURE AGENTS IN SCHEMA COWORK_AI_HOL_DB.AGENTS TO ROLE ACCOUNTADMIN;
+
 
 -- Warehouse usage on COWORK_AI_HOL_WH and on User's defualt WH (which is used for eval tasks)
 GRANT USAGE ON WAREHOUSE COWORK_AI_HOL_WH TO ROLE COWORK_AI_HOL_ROLE;
@@ -768,6 +765,7 @@ DESCRIBE AGENT MARKETING_AGENT;
 -- Grant usage, modify, monitor on agent to accountadmin
 GRANT MONITOR ON AGENT MARKETING_AGENT to ROLE ACCOUNTADMIN;
 
+
 -- ====================================================================
 -- SECTION 10.5: EXPLORE AGENT VERSIONS
 -- ====================================================================
@@ -785,6 +783,12 @@ ALTER AGENT MARKETING_AGENT
 -- The default version is VERSION$1 (latest committed = LAST)
 -- The baseline eval in Section 12 will run against this version
 SHOW VERSIONS IN AGENT MARKETING_AGENT;
+
+-- Create specialized db/application roles (must run after first agent is created)
+USE ROLE ACCOUNTADMIN;
+GRANT DATABASE ROLE SNOWFLAKE.CORTEX_USER TO ROLE COWORK_AI_HOL_ROLE;
+GRANT APPLICATION ROLE SNOWFLAKE.AI_OBSERVABILITY_EVENTS_LOOKUP TO ROLE COWORK_AI_HOL_ROLE;
+USE ROLE COWORK_AI_HOL_ROLE;
 
 
 -- ====================================================================
@@ -1021,40 +1025,6 @@ CALL EXECUTE_AI_EVALUATION(
   OBJECT_CONSTRUCT('run_name', 'BASELINE_MARKETING_AGENT_EVAL_RUN'),
   '@COWORK_AI_HOL_DB.AGENTS.EVAL_CONFIG_STAGE/marketing_campaign_eval_config.yaml'
 );
-
--- Iteratively check status of evaluation run and wait to proceed until eval is completed
-
-DECLARE
-    run_name VARCHAR DEFAULT 'BASELINE_MARKETING_AGENT_EVAL_RUN';
-    config_path VARCHAR DEFAULT '@COWORK_AI_HOL_DB.AGENTS.EVAL_CONFIG_STAGE/marketing_campaign_eval_config.yaml';
-    max_wait_seconds NUMBER DEFAULT 600;
-    poll_interval_seconds NUMBER DEFAULT 20;
-    status_val VARCHAR;
-    elapsed NUMBER DEFAULT 0;
-BEGIN
-    LOOP
-        CALL EXECUTE_AI_EVALUATION('STATUS', OBJECT_CONSTRUCT('run_name', :run_name), :config_path);
-        LET status_cursor CURSOR FOR SELECT STATUS FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()));
-        OPEN status_cursor;
-        FETCH status_cursor INTO status_val;
-        CLOSE status_cursor;
-        
-        IF (status_val = 'COMPLETED') THEN
-            RETURN 'COMPLETED after ' || :elapsed || ' seconds';
-        ELSEIF (status_val IN ('FAILED', 'ERROR')) THEN
-            RETURN 'FAILED';
-        ELSEIF (status_val = 'CANCELLED') THEN
-            RETURN 'CANCELLED';
-        END IF;
-        
-        IF (elapsed >= :max_wait_seconds) THEN
-            RETURN 'TIMEOUT after ' || :max_wait_seconds || ' seconds';
-        END IF;
-        
-        CALL SYSTEM$WAIT(:poll_interval_seconds);
-        elapsed := elapsed + :poll_interval_seconds;
-    END LOOP;
-END;
 
 SELECT 'SETUP COMPLETE! Access your evaluation results at link below';
 SELECT 'https://app.snowflake.com/' || 
