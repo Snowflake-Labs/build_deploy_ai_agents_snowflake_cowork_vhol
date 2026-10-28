@@ -127,7 +127,7 @@ CREATE OR REPLACE API INTEGRATION GIT_API_INTEGRATION_COWORK_AI_HOL
 -- Clone the GitHub repository (lab data lives in the data/ folder at the repo root)
 CREATE OR REPLACE GIT REPOSITORY CORTEX_AGENT_QUICKSTART_REPO
     API_INTEGRATION = GIT_API_INTEGRATION_COWORK_AI_HOL
-    ORIGIN = 'https://github.com/Snowflake-Labs/sfguide-build-evaluate-and-deploy-ai-agents-with-snowflake-cowork.git';
+    ORIGIN = 'https://github.com/Snowflake-Labs/build_deploy_ai_agents_snowflake_cowork_vhol.git';
 
 -- Fetch latest from GitHub
 ALTER GIT REPOSITORY CORTEX_AGENT_QUICKSTART_REPO FETCH;
