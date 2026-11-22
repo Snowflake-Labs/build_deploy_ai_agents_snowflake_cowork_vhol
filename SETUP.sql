@@ -1007,7 +1007,7 @@ DESCRIBE STAGE eval_config_stage;
 
 -- Confirm yaml was uploaded
 LS @COWORK_AI_HOL_DB.AGENTS.EVAL_CONFIG_STAGE;
-
+    
 -- Check contents of yaml
 SELECT $1 FROM @COWORK_AI_HOL_DB.AGENTS.EVAL_CONFIG_STAGE/marketing_campaign_eval_config.yaml;
 
