@@ -1,0 +1,21 @@
+manifest_version: 2
+type: DCM_PROJECT
+default_target: 'DEV'
+
+targets:
+  DEV:
+    account_identifier: MLC21604
+    project_name: 'AI_AGENT_HOL_ADMIN.DCM.AI_AGENT_HOL'
+    project_owner: ACCOUNTADMIN
+    templating_config: 'DEV'
+
+templating:
+  defaults:
+    db: 'AI_AGENT_HOL_DB'
+    wh: 'AI_AGENT_HOL_WH'
+    wh_size: 'SMALL'
+    role: 'AI_AGENT_HOL_ROLE'
+    users:
+      - 'MANVARGAS'
+  configurations:
+    DEV: {}
