@@ -1,4 +1,4 @@
--- Semantic view for Cortex Analyst (SETUP.sql section 6)
+-- Semantic view for Cortex Analyst
 
 DEFINE SEMANTIC VIEW {{db}}.ANALYTICS.MARKETING_PERFORMANCE_ANALYST
   TABLES (

@@ -15,7 +15,5 @@ templating:
     wh: 'AI_AGENT_HOL_WH'
     wh_size: 'SMALL'
     role: 'AI_AGENT_HOL_ROLE'
-    users:
-      - 'MANVARGAS'
   configurations:
     DEV: {}

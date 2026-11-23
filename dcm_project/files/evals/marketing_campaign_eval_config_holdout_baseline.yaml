@@ -1,0 +1,136 @@
+# Marketing Campaign Agent Evaluation Configuration
+# Evaluation metrics for answer correctness, logical consistency, tool selection accuracy,
+# execution efficiency and groundedness
+# Based on TruLens Agent GPA evaluation methodology
+
+# Evaluation task configuration
+evaluation:
+  agent_params:
+    agent_name: AI_AGENT_HOL_DB.AGENTS.MARKETING_AGENT
+    agent_type: CORTEX AGENT
+    agent_version: VERSION$1
+  run_params:
+    label: Marketing Campaign Agent Evaluation (held-out, baseline)
+    description: Evaluating Answer Correctness, Logical Consistency, Tool Selection Accuracy, Tool Execution Accuracy, Groundedness and Execution Efficiency metrics for the marketing campaign analytics agent
+  source_metadata:
+    type: dataset
+    dataset_name: AI_AGENT_HOL_DB.AGENTS.MARKETING_CAMPAIGN_EVALSET_HOLDOUT
+
+metrics:
+  # Built-in metrics
+  - name: "answer_correctness"
+    version: "v3"
+  - name: "logical_consistency"
+    version: "v3"
+  - name: "tool_selection_accuracy"
+    version: "v3"
+  - name: "tool_execution_accuracy"
+    version: "v3"
+
+  # Custom Metrics
+
+  # Groundedness metric - TruLens Agent GPA based evaluation
+  # Evaluates whether the agent's response is supported by the execution trace
+  - name: groundedness
+    model: "claude-sonnet-4-6"
+    score_ranges:
+      min_score: [0, 0.33]
+      median_score: [0.34, 0.66]
+      max_score: [0.67, 1]
+    prompt: |
+      You are evaluating the groundedness of an AI agent's response. Groundedness measures
+      whether each substantive claim in the response is supported by concrete evidence in
+      the execution trace.
+
+      IMPORTANT: Evaluate claim-to-result alignment, not claim-to-tool-type alignment.
+      A claim is grounded only if the required evidence appears in actual tool outputs,
+      retrieved rows/snippets, report outputs, or other trace context.
+
+      Agent Response to Evaluate:
+      {{output}}
+
+      The complete agent execution trace is provided as context, including:
+      - All tool calls made (query_performance_metrics, search_campaign_content, web_search)
+      - Tool outputs and retrieved data
+      - Intermediate reasoning steps
+
+      Here are a few examples of groundedness scores:
+
+      0 (Not Grounded):
+        - Key claims are unsupported, contradicted, or fabricated relative to tool results
+        - Superlative/comparative conclusions ("most compelling", "most alike", "best")
+          are made without evidence from returned results
+        - Report responses invent artifact details, KPIs, or findings not present in outputs
+
+      0.5 (Partially Grounded):
+        - Some important claims are evidence-backed, but at least one material conclusion
+          is weakly supported or not directly shown in results
+        - Comparison conclusion is plausible but incomplete (limited evidence or missing tie-break rationale)
+        - Report output details are partially accurate but omit or blur key result-backed facts
+
+      1 (Fully Grounded):
+        - All material claims are traceable to concrete evidence in tool results
+        - Metrics, campaign attributes, and report details match retrieved outputs
+        - Comparative/superlative conclusions are justified using explicit evidence
+        - When evidence is incomplete, the response states uncertainty instead of guessing
+
+      Consider:
+      - Are revenue figures, ROI percentages, and other metrics supported by result rows?
+      - Are campaign descriptions, A/B notes, and feedback grounded in returned snippets?
+      - For report requests, does the response accurately reflect report generation output
+        (artifact/link/name) and avoid fabricated details?
+      - For capability/meta queries, tool calls may be unnecessary; still require claims
+        to align with supported behavior and trace context, without over-claiming.
+
+  # Execution Efficiency metric - TruLens Agent GPA based evaluation
+  # Evaluates how optimally the agent uses its available tools to accomplish the user's goal
+  - name: execution_efficiency
+    model: "claude-sonnet-4-6"
+    score_ranges:
+      min_score: [0, 0.33]
+      median_score: [0.34, 0.66]
+      max_score: [0.67, 1]
+    prompt: |
+      You are evaluating the execution efficiency of an AI agent that analyzes marketing
+      campaigns. Execution efficiency measures how optimally the agent uses its available
+      tools to accomplish the user's goal.
+
+      The agent has access to the following tools:
+      1. query_performance_metrics - For quantitative analysis (revenue, ROI, conversions, etc.)
+      2. search_campaign_content - For qualitative insights (descriptions, feedback, A/B tests)
+      3. web_search - For external/industry context
+      Report requests are handled by the campaign-report skill, which is not a tool call; it uses the tools above to gather data.
+
+      Analyze the complete agent execution trace provided as context, including:
+      - Execution duration: {{duration}} milliseconds
+      - Tool calls made and their sequence
+      - Any errors encountered: {{error}}
+      - Execution status: {{status}}
+
+      Here are a few examples of execution efficiency scores:
+
+      0 (Inefficient):
+        - Excessive or redundant tool calls relative to query complexity
+        - Repeated broad searches when one or two focused retrievals would suffice
+        - Multiple avoidable retries, loops, or backtracking steps
+        - Very long execution duration without proportional complexity
+        - Unnecessary tool chains for capability/meta questions
+
+      0.5 (Moderately Efficient):
+        - Reasonable path but with one notable inefficiency
+        - Slightly more calls than necessary, or avoidable duplicate retrieval
+        - Mostly direct flow with minor backtracking
+
+      1 (Highly Efficient):
+        - Minimal sensible path from request to answer
+        - Tool sequence is concise and dependency-aware
+        - No redundant retrievals or unnecessary calls
+        - Execution time is appropriate for task complexity
+
+      Consider:
+      - For report requests, was the flow efficient (identify campaign if needed ->
+        generate report -> optional concise support fetch)?
+      - For vague comparison questions, did the agent avoid repeated unfocused searches?
+      - For capability/meta queries, did it avoid unnecessary tool execution?
+      - Could the same result have been achieved with fewer calls or a tighter sequence?
+      - Focus on path efficiency and redundancy, not factual claim support.

@@ -1,4 +1,4 @@
--- Lab role and grants (SETUP.sql section 2).
+-- Lab role and grants.
 -- DCM-managed objects are owned by the project owner (ACCOUNTADMIN); the lab role
 -- gets read access to them plus CREATE privileges for what it builds itself
 -- (search service, agent, git repo, datasets, eval tasks) in post_deploy.sql.
@@ -6,9 +6,7 @@
 DEFINE ROLE {{role}}
     COMMENT = 'Lab role for the AI agent HOL';
 
-{% for user_name in users %}
-GRANT ROLE {{role}} TO USER {{user_name}};
-{% endfor %}
+-- The role is granted to whoever runs post_deploy.sql (CURRENT_USER), so no user list here.
 
 GRANT USAGE ON WAREHOUSE {{wh}} TO ROLE {{role}};
 GRANT USAGE ON DATABASE {{db}} TO ROLE {{role}};

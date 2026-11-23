@@ -10,11 +10,11 @@ evaluation:
     agent_type: CORTEX AGENT
     agent_version: VERSION$1
   run_params:
-    label: Marketing Campaign Agent Evaluation
+    label: Marketing Campaign Agent Evaluation (dev, baseline)
     description: Evaluating Answer Correctness, Logical Consistency, Tool Selection Accuracy, Tool Execution Accuracy, Groundedness and Execution Efficiency metrics for the marketing campaign analytics agent
   source_metadata:
     type: dataset
-    dataset_name: AI_AGENT_HOL_DB.AGENTS.MARKETING_CAMPAIGN_EVALSET
+    dataset_name: AI_AGENT_HOL_DB.AGENTS.MARKETING_CAMPAIGN_EVALSET_DEV
 
 metrics:
   # Built-in metrics

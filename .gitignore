@@ -1,2 +1,45 @@
 # Cortex Code agent-studio workspace (local agent/eval specs)
 cortex_project/
+
+# Snowflake credentials / connection config (never commit)
+.snowflake/
+connections.toml
+config.toml
+snowflake.yml.local
+*.p8
+*.pem
+*.key
+rsa_key*
+.env
+.env.*
+!.env.example
+
+# Snowflake CLI / DCM build output
+output/
+.snowflake-cli/
+dcm_project/out/
+dcm_project/.dcm/
+*.log
+
+# Cortex Code / SnowConvert local state
+.scai/
+.cortex/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+*.egg-info/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

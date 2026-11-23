@@ -1,5 +1,5 @@
 -- Database, schemas, warehouse, integration, file format, stages
--- (replaces SETUP.sql sections 1, 3, 4 (file format), 8 (stage), 12 (stage))
+--
 
 DEFINE DATABASE {{db}}
     COMMENT = 'Marketing campaigns analytics HOL (managed by DCM project AI_AGENT_HOL)';

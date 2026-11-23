@@ -1,4 +1,4 @@
--- Campaign tables (SETUP.sql section 4). Data is loaded in post_deploy.sql.
+-- Campaign tables. Data is loaded in post_deploy.sql.
 
 DEFINE TABLE {{db}}.DATA.CAMPAIGNS (
     campaign_id INT,
@@ -49,7 +49,21 @@ DEFINE TABLE {{db}}.DATA.CAMPAIGN_FEEDBACK (
 
 -- Original script loaded VARCHAR then CTAS'd to VARIANT; defined directly as VARIANT
 -- here and populated with PARSE_JSON in post_deploy.sql.
+-- SPLIT is 'DEV' (tune on these) or 'HOLDOUT' (only used to decide promotion);
+-- assigned in post_deploy.sql so EVALS_TABLE.csv stays unchanged.
 DEFINE TABLE {{db}}.DATA.EVALS_TABLE (
+    INPUT_QUERY TEXT,
+    GROUND_TRUTH_DATA VARIANT,
+    SPLIT TEXT
+);
+
+-- Per-split sources for SYSTEM$CREATE_EVALUATION_DATASET.
+DEFINE TABLE {{db}}.DATA.EVALS_TABLE_DEV (
+    INPUT_QUERY TEXT,
+    GROUND_TRUTH_DATA VARIANT
+);
+
+DEFINE TABLE {{db}}.DATA.EVALS_TABLE_HOLDOUT (
     INPUT_QUERY TEXT,
     GROUND_TRUTH_DATA VARIANT
 );
