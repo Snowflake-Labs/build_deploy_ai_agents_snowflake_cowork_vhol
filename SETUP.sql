@@ -880,7 +880,7 @@ metrics:
 
   # Groundedness metric - TruLens Agent GPA based evaluation
   # Evaluates whether the agent''s response is supported by the execution trace
-  - name: groundedness
+  - name: campaign_groundedness
     model: "claude-sonnet-4-6"
     score_ranges:
       min_score: [0, 0.33]
@@ -933,7 +933,7 @@ metrics:
 
   # Execution Efficiency metric - TruLens Agent GPA based evaluation
   # Evaluates how optimally the agent uses its available tools to accomplish the user''s goal
-  - name: execution_efficiency
+  - name: campaign_execution_efficiency
     model: "claude-sonnet-4-6"
     score_ranges:
       min_score: [0, 0.33]
@@ -1007,7 +1007,7 @@ DESCRIBE STAGE eval_config_stage;
 
 -- Confirm yaml was uploaded
 LS @COWORK_AI_HOL_DB.AGENTS.EVAL_CONFIG_STAGE;
-
+    
 -- Check contents of yaml
 SELECT $1 FROM @COWORK_AI_HOL_DB.AGENTS.EVAL_CONFIG_STAGE/marketing_campaign_eval_config.yaml;
 
@@ -1032,3 +1032,5 @@ SELECT 'https://app.snowflake.com/' ||
        LOWER(CURRENT_ACCOUNT_NAME()) || 
        '/#/agents/database/COWORK_AI_HOL_DB/schema/AGENTS/agent/MARKETING_AGENT/details?tab=evaluations&preset=PRESET_LAST_DAY&type=relative' 
        AS agent_eval_url;
+
+
